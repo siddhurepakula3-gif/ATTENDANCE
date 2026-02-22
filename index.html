@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Department Attendance</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f7f6; padding: 20px; max-width: 800px; margin: auto; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background: #007bff; color: white; }
+        button { background: #28a745; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 5px; }
+        input[type="text"], input[type="date"] { padding: 8px; margin-right: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>📌 Mark Daily Attendance</h2>
+        <input type="date" id="dateInput">
+        <table id="attendanceTable">
+            <thead>
+                <tr><th>Roll No</th><th>Student Name</th><th>Status</th></tr>
+            </thead>
+            <tbody id="studentList">
+                <tr><td>101</td><td>Alice</td><td><select><option value="Present">Present</option><option value="Absent">Absent</option></select></td></tr>
+                <tr><td>102</td><td>Bob</td><td><select><option value="Present">Present</option><option value="Absent">Absent</option></select></td></tr>
+                <tr><td>103</td><td>Charlie</td><td><select><option value="Present">Present</option><option value="Absent">Absent</option></select></td></tr>
+            </tbody>
+        </table>
+        <button onclick="submitData()">Save Attendance</button>
+    </div>
+
+    <div class="card">
+        <h2>📊 Check Student Percentage</h2>
+        <input type="text" id="rollNo" placeholder="Enter Roll No (e.g., 101)">
+        <button onclick="checkStats()" style="background: #007bff;">Check Stats</button>
+        <h3 id="resultText" style="margin-top: 15px; color: #333;"></h3>
+    </div>
+
+    <script>
+        // Function to send data to the server
+        async function submitData() {
+            const date = document.getElementById('dateInput').value;
+            if (!date) return alert("Please select a date first!");
+
+            const rows = document.querySelectorAll('#studentList tr');
+            const records = Array.from(rows).map(row => ({
+                studentId: row.cells[0].innerText,
+                studentName: row.cells[1].innerText,
+                status: row.cells[2].querySelector('select').value
+            }));
+
+            const response = await fetch('/api/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date, records })
+            });
+
+            if (response.ok) {
+                alert("Attendance successfully saved to database!");
+            } else {
+                alert("Error saving attendance.");
+            }
+        }
+
+        // Function to request stats from the server
+        async function checkStats() {
+            const id = document.getElementById('rollNo').value;
+            if (!id) return alert("Enter a Roll Number");
+
+            const response = await fetch(`/api/stats/${id}`);
+            const data = await response.json();
+            const resultBox = document.getElementById('resultText');
+
+            if (response.ok) {
+                resultBox.innerText = `Attendance for ${id}: ${data.percentage} (${data.presentDays}/${data.totalDays} days)`;
+                resultBox.style.color = parseFloat(data.percentage) >= 75 ? "green" : "red";
+            } else {
+                resultBox.innerText = "No records found for this ID.";
+                resultBox.style.color = "black";
+            }
+        }
+    </script>
+</body>
+</html>
